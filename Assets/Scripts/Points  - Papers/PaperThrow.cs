@@ -27,31 +27,65 @@ public class PaperThrow : MonoBehaviour
 
     void Update()
     {
+        /*
+         * MODO ANTERIOR / PRUEBA:
+         * Este bloque permite apuntar manteniendo F y lanzar al soltar F.
+         * Lo dejamos activo por si quieres probar el lanzamiento sin el medidor.
+         * No tiene nada específico de Leap Motion, así que no se pierde funcionalidad.
+         */
+
         if (Input.GetKeyDown(KeyCode.F))
-            isAiming = true;
+        {
+            BeginAim();
+        }
 
         if (isAiming)
         {
-            float mouseY = Input.GetAxis("Mouse Y");
-            currentVerticalAngle += mouseY * mouseSensitivity;
-            currentVerticalAngle = Mathf.Clamp(currentVerticalAngle, minAngle, maxAngle);
-
-            float mouseX = Input.GetAxis("Mouse X");
-            currentHorizontalAngle += mouseX * mouseSensitivity;
-            currentHorizontalAngle = Mathf.Clamp(currentHorizontalAngle, minHorizontalAngle, maxHorizontalAngle);
-
+            UpdateAimWithMouse();
             ShowTrajectory();
         }
 
         if (Input.GetKeyUp(KeyCode.F))
         {
-            isAiming = false;
-
-            if (trajectoryLine != null)
-                trajectoryLine.positionCount = 0;
-
-            TryThrow();
+            ThrowPreparedPaper(true);
         }
+
+        /*
+         * Si más adelante se vuelve a usar Leap Motion, aquí podría conectarse
+         * el gesto de la mano para modificar currentVerticalAngle,
+         * currentHorizontalAngle o para llamar a ThrowPreparedPaper().
+         */
+    }
+
+    public void BeginAim()
+    {
+        isAiming = true;
+
+        if (trajectoryLine != null)
+        {
+            trajectoryLine.positionCount = 0;
+        }
+    }
+
+    public void StopAim()
+    {
+        isAiming = false;
+
+        if (trajectoryLine != null)
+        {
+            trajectoryLine.positionCount = 0;
+        }
+    }
+
+    void UpdateAimWithMouse()
+    {
+        float mouseY = Input.GetAxis("Mouse Y");
+        currentVerticalAngle += mouseY * mouseSensitivity;
+        currentVerticalAngle = Mathf.Clamp(currentVerticalAngle, minAngle, maxAngle);
+
+        float mouseX = Input.GetAxis("Mouse X");
+        currentHorizontalAngle += mouseX * mouseSensitivity;
+        currentHorizontalAngle = Mathf.Clamp(currentHorizontalAngle, minHorizontalAngle, maxHorizontalAngle);
     }
 
     void ShowTrajectory()
@@ -100,15 +134,19 @@ public class PaperThrow : MonoBehaviour
         return direction.normalized * throwForce;
     }
 
-    void TryThrow()
+    public void ThrowPreparedPaper(bool consumePaper)
     {
-        if (!PaperManager.Instance.HasPapers())
+        if (consumePaper)
         {
-            Debug.Log("No papers left!");
-            return;
-        }
+            if (!PaperManager.Instance.HasPapers())
+            {
+                Debug.Log("No papers left!");
+                StopAim();
+                return;
+            }
 
-        PaperManager.Instance.ThrowPaper();
+            PaperManager.Instance.ThrowPaper();
+        }
 
         Vector3 throwVelocity = CalculateThrowVelocity();
 
@@ -119,11 +157,14 @@ public class PaperThrow : MonoBehaviour
         );
 
         Rigidbody rb = paper.GetComponent<Rigidbody>();
+
         if (rb != null)
         {
             rb.AddForce(throwVelocity, ForceMode.Impulse);
         }
 
         Destroy(paper, 3f);
+
+        StopAim();
     }
 }

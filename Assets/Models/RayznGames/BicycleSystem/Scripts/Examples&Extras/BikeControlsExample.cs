@@ -8,6 +8,9 @@ namespace rayzngames
         BicycleVehicle bicycle;
         public bool controllingBike;
 
+        [Header("Arduino")]
+        public ArduinoReader arduinoReader;
+
         void Awake()
         {
             bicycle = GetComponent<BicycleVehicle>();
@@ -16,7 +19,15 @@ namespace rayzngames
         void Update()
         {
             bicycle.verticalInput = Input.GetAxis("Vertical");
-            bicycle.horizontalInput = Input.GetAxis("Horizontal");
+
+            float potInput = 0f;
+            if (arduinoReader != null)
+            {
+                potInput = arduinoReader.potentiometerInput;
+            }
+
+            bicycle.horizontalInput = Mathf.Clamp(Input.GetAxis("Horizontal") + potInput, -1f, 1f);
+
             BrakingInput();
 
             bicycle.InControl(controllingBike);

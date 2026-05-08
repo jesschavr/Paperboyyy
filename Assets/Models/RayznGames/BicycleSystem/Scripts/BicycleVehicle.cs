@@ -14,6 +14,10 @@ namespace rayzngames
 		public bool isInControl { get; private set; }
 		public bool slipFront { get; private set; }
 		public bool slipRear{ get; private set; }
+
+		[Header("Delivery System")]
+		[SerializeField] DeliveryMeter deliveryMeter;
+		// private ActiveMailbox currentMailbox;
 		
 		Rigidbody rb;
 
@@ -93,6 +97,7 @@ namespace rayzngames
 			rb = GetComponent<Rigidbody>();
 			InControl(true);
 		}
+
 		void Start()
 		{
 			if (frontTrailContact != null)
@@ -113,6 +118,37 @@ namespace rayzngames
 			rearWheel.ConfigureVehicleSubsteps(5, 12, 15);
 		}
 
+		void Update()
+		{
+			if (Input.GetKeyDown(KeyCode.Space))
+			{
+				if (deliveryMeter != null)
+					{
+						deliveryMeter.StartMeter();
+					}
+			}
+		}
+
+		/* void OnTriggerEnter(Collider other)
+				{
+			ActiveMailbox mailbox = other.GetComponentInParent<ActiveMailbox>();
+
+			if (mailbox != null && !mailbox.alreadyUsed)
+			{
+				currentMailbox = mailbox;
+			}
+		}
+
+
+		void OnTriggerExit(Collider other)
+		{
+			ActiveMailbox mailbox = other.GetComponentInParent<ActiveMailbox>();
+
+			if (mailbox == currentMailbox)
+			{
+				currentMailbox = null;
+			}
+		} */
 
 		// Update is called once per frame
 		void FixedUpdate()
@@ -166,11 +202,8 @@ namespace rayzngames
 			rearWheel.brakeTorque = brakeForce * rearBrakePower;
 		}
 
-		//This replaces the (Magic numbers) that controlled an exponential decay function for maxteeringAngle (maxSteering angle was not adjustable)
-		//This one allows to customize Default bike maxSteeringAngle parameters and maxSpeed allowing for better scalability for each vehicle	
 		private void MaxSteeringReductor()
 		{
-			//(30 = 108 kmh) is the value at wich currentMaxSteering will be at its minimum,			
 			float t = (rb.linearVelocity.magnitude / 30) * steerReductorAmmount;
 			t = t > 1 ? 1 : t;
 			current_maxSteeringAngle = Mathf.LerpAngle(maxSteeringAngle, minSteeringAngle, t);
@@ -180,7 +213,6 @@ namespace rayzngames
 			MaxSteeringReductor();
 			currentSteeringAngle = Mathf.Lerp(currentSteeringAngle, current_maxSteeringAngle * horizontalInput, turnSmoothing * 0.1f);
 			frontWheel.steerAngle = currentSteeringAngle;
-			//We invert Input for rotating in the correct direction
 			targetLeanAngle = maxLeanAngle * -horizontalInput;
 		}
 		private void UpdateHandles()
@@ -193,17 +225,14 @@ namespace rayzngames
 		private void LeanOnTurnLocal()
 		{
 			Vector3 currentRot = transform.localEulerAngles;
-			//Case: not moving much		
 			if (rb.linearVelocity.magnitude < 2f)
 			{
 				currentLeanAngle = Mathf.LerpAngle(currentRot.z, 0f, 0.05f);
 			}
-			//Case: Not steering or steering a tiny amount
 			if (currentSteeringAngle < 0.5f && currentSteeringAngle > -0.5)
 			{
 				currentLeanAngle = Mathf.LerpAngle(currentRot.z, 0f, leanSmoothing * 0.1f);
 			}
-			//Case: Steering
 			else
 			{
 				currentLeanAngle = Mathf.LerpAngle(currentLeanAngle, targetLeanAngle, leanSmoothing * 0.1f);
@@ -214,7 +243,6 @@ namespace rayzngames
 
 		private void UpdateWheels()
 		{
-			//Front wheel is handled individually
 			UpdateFrontWheel();
 			UpdateSingleWheel(rearWheel, rearWheelTransform);
 		}
@@ -231,27 +259,22 @@ namespace rayzngames
 
 		void GetWheelSpin()
 		{
-			// Convert rpm to degrees per second
-			float degreesPerSecond = frontWheel.rpm * 6f; // 360 degrees / 60 seconds = 6														  
-			frontSpin += degreesPerSecond * Time.fixedDeltaTime;// Integrate over fixedeltaTIme
-			// Wrap 0–360
+			float degreesPerSecond = frontWheel.rpm * 6f;													  
+			frontSpin += degreesPerSecond * Time.fixedDeltaTime;
 			if (frontSpin >= 360f) frontSpin = 0f;
 			if (frontSpin < 0f) frontSpin = 360f;
 		}
 
 		private void EmitTrail()
 		{
-			//Slip dependandt trails and particles.
 			frontWheel.GetGroundHit(out frontInfo);
 			rearWheel.GetGroundHit(out rearInfo);
-			//Slip Trails Side
 			rearSideCoeff = rearInfo.sidewaysSlip / rearWheel.sidewaysFriction.extremumSlip;
 			frontSideCoeff = frontInfo.sidewaysSlip / frontWheel.sidewaysFriction.extremumSlip;
-			//FWD
 			frontFWD = frontInfo.forwardSlip / frontWheel.forwardFriction.extremumSlip;
 			rearFWD = rearInfo.forwardSlip / rearWheel.forwardFriction.extremumSlip;	
 
-			if (frontTrailContact != null) //We can get contacts
+			if (frontTrailContact != null)
 			{
 				slipFront = SlipFront();
 				if (slipFront)
@@ -265,7 +288,7 @@ namespace rayzngames
 					if (frontSmoke.isPlaying) { frontSmoke.Stop(); }
 				}			
 			}
-			//We can get contacts
+
 			if (rearTrailContact != null)
 			{
 				slipRear = SlipRear();
@@ -340,13 +363,12 @@ namespace rayzngames
 			rb = GetComponent<Rigidbody>();
 			JointSpring susSpring;
 
-			//Front
 			susSpring.spring = 23.33f * rb.mass;
 			susSpring.damper = 3 * rb.mass;
 			susSpring.targetPosition = frontWheel.suspensionSpring.targetPosition;
 
 			frontWheel.suspensionSpring = susSpring;
-			//rear			
+
 			susSpring.spring = 23.33f * rb.mass;
 			susSpring.damper = 3 * rb.mass;
 			susSpring.targetPosition = rearWheel.suspensionSpring.targetPosition;
@@ -361,19 +383,16 @@ namespace rayzngames
 			rb = GetComponent<Rigidbody>();
 			JointSpring susSpring;
 
-			//Front
 			susSpring.spring = 750f * rb.mass;
 			susSpring.damper = 32.5f * rb.mass;
 			susSpring.targetPosition = frontWheel.suspensionSpring.targetPosition;
 			frontWheel.suspensionSpring = susSpring;
 
-			//rear			
 			susSpring.spring = 350f * rb.mass;
 			susSpring.damper = 22.5f * rb.mass;
 			susSpring.targetPosition = rearWheel.suspensionSpring.targetPosition;
 			rearWheel.suspensionSpring = susSpring;
 
-			//Frictions
 			FrictionParameters_Motorbike();
 		}
 		[ContextMenu("Set Wheels Springs and Frictions (Bicycle)")]
@@ -382,19 +401,16 @@ namespace rayzngames
 			rb = GetComponent<Rigidbody>();
 			JointSpring susSpring;
 
-			//Front
 			susSpring.spring = 256 * rb.mass;
 			susSpring.damper = 16f * rb.mass;
 			susSpring.targetPosition = frontWheel.suspensionSpring.targetPosition;
 			frontWheel.suspensionSpring = susSpring;
 
-			//rear			
 			susSpring.spring = 219 * rb.mass;
 			susSpring.damper = 11.7f * rb.mass;
 			susSpring.targetPosition = rearWheel.suspensionSpring.targetPosition;
 			rearWheel.suspensionSpring = susSpring;
 
-			//Frictions
 			FrictionParameters_Bicycle();
 		}
 		
@@ -413,7 +429,7 @@ namespace rayzngames
 		public void FrictionParameters_Bicycle()
 		{
 			WheelFrictionCurve frontForwardFrictionCurve = CreateFrictionCurve(0.3f, 1f, 0.5f, 1f, 1f);
-			WheelFrictionCurve frontSidewaysFrictionCurve = CreateFrictionCurve(0.35f, 1.25f, 0.5f, 1f, 1);
+			WheelFrictionCurve frontSidewaysFrictionCurve = CreateFrictionCurve(0.35f, 1.25f, 0.5f, 1f, 1f);
 			frontWheel.forwardFriction = frontForwardFrictionCurve;
 			frontWheel.sidewaysFriction = frontSidewaysFrictionCurve;
 
@@ -438,10 +454,7 @@ namespace rayzngames
 		protected private float frontSideCoeff;
 		float frontFWD;
 		float rearFWD;
-		/// <summary>
-		/// Resultant values are normalized slip values that go from (≈ 0.0 – 0.5 - normal grip below extremium slip) 
-		/// (to 1 - Peak of grip limit,right at eXtremium slip) (>1 - slip slide, grip is falling toward the asymptote) 
-		/// </summary>
+
 		public void WheelNormalizedSlipInfo()
 		{
 			frontWheel.GetGroundHit(out frontInfo);
@@ -455,7 +468,7 @@ namespace rayzngames
 
 			string frontGrip = "";
 			string rearGrip = "";
-			//Front Grip/Slip
+
 			if (frontFWD < 1.1f && frontFWD > -1.1f || frontSideCoeff < 1.1f && frontSideCoeff > -1.1f)
 			{
 				frontGrip = "Grip";
@@ -464,7 +477,7 @@ namespace rayzngames
 			{
 				frontGrip = "Slip"; 
 			}
-			//Rear Grip/Slip
+
 			if (rearFWD < 1.1f & rearFWD > -1.1f || rearSideCoeff < 1.1f && rearSideCoeff > -1.1f)
 			{
 				rearGrip = "Grip";
@@ -483,19 +496,15 @@ namespace rayzngames
 
 	#region CustomInspector
 	[CustomEditor(typeof(BicycleVehicle))]
-	//We need to extend the Editor
 	public class BicycleInspector : Editor
 	{
-		//Here we grab a reference to our component
 		BicycleVehicle bicycle;
 
 		private void OnEnable()
 		{
-			//target is by default available for you in Editor		
 			bicycle = target as BicycleVehicle;
 		}
 
-		//Here is the meat of the script
 		public override void OnInspectorGUI()
 		{
 			SetLabel("Easy Bike System", 30, FontStyle.Bold, TextAnchor.UpperLeft);
