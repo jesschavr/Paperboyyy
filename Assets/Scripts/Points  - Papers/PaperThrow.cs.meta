@@ -1,2 +1,14 @@
 fileFormatVersion: 2
 guid: bcefc17fbfea8b3408d17fee21dbcb7c
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - paperPrefab: {fileID: 919132149155446097, guid: 6b27ad4da3a284baba5a73023ebb4eee, type: 3}
+  - throwOrigin: {instanceID: 0}
+  - trajectoryLine: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
