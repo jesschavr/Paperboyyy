@@ -1,54 +1,37 @@
 using UnityEngine;
-using TMPro;
+using System;
 
 public class PaperManager : MonoBehaviour
 {
-    public static PaperManager Instance;
+    public static PaperManager Instance { get; private set; }
 
     [Header("Paper Settings")]
-    [SerializeField] int maxPapers = 10;
-    int currentPapers = 0;
-    int deliveredPapers = 0;
+    [SerializeField] int startingPapers = 1;
+    [SerializeField] int maxPapers = 4;
 
-    [Header("UI")]
-    [SerializeField] TextMeshProUGUI paperCountText;
-    [SerializeField] TextMeshProUGUI deliveredCountText; // optional score text
+    public int CurrentPapers => currentPapers;
+    public int MaxPapers => maxPapers;
+    public int DeliveredPapers => deliveredPapers;
+
+    public event Action<int> OnPaperCountChanged;
+
+    int currentPapers;
+    int deliveredPapers;
 
     void Awake()
     {
-        if (Instance == null)
-            Instance = this;
-        else
-            Destroy(gameObject);
-    }
-
-    void Start()
-    {
-        UpdateUI();
-    }
-
-    public void CollectPaper()
-    {
-        currentPapers = Mathf.Min(currentPapers + 1, maxPapers);
-        UpdateUI();
-    }
-
-    public bool ThrowPaper()
-    {
-        if (currentPapers > 0)
+        if (Instance != null && Instance != this)
         {
-            currentPapers--;
-            UpdateUI();
-            return true;
+            Destroy(gameObject);
+            return;
         }
-        return false;
-    }
 
-    public void DeliverPaper()
-    {
-        deliveredPapers++;
-        UpdateUI();
-        Debug.Log("Total delivered: " + deliveredPapers);
+        Instance = this;
+
+        currentPapers = Mathf.Clamp(startingPapers, 0, maxPapers);
+        deliveredPapers = 0;
+
+        NotifyPaperCountChanged();
     }
 
     public bool HasPapers()
@@ -56,12 +39,47 @@ public class PaperManager : MonoBehaviour
         return currentPapers > 0;
     }
 
-    void UpdateUI()
+    public bool HasSpace()
     {
-        if (paperCountText != null)
-            paperCountText.text = currentPapers + " / " + maxPapers;
+        return currentPapers < maxPapers;
+    }
 
-        if (deliveredCountText != null)
-            deliveredCountText.text = "Delivered: " + deliveredPapers;
+    public bool CollectPaper()
+    {
+        if (currentPapers >= maxPapers)
+        {
+            Debug.Log("Paper inventory is full");
+            return false;
+        }
+
+        currentPapers++;
+        Debug.Log("Collected paper. Total: " + currentPapers);
+        NotifyPaperCountChanged();
+        return true;
+    }
+
+    public bool ThrowPaper()
+    {
+        if (currentPapers <= 0)
+        {
+            Debug.Log("No papers left");
+            return false;
+        }
+
+        currentPapers--;
+        Debug.Log("Threw paper. Remaining: " + currentPapers);
+        NotifyPaperCountChanged();
+        return true;
+    }
+
+    public void DeliverPaper()
+    {
+        deliveredPapers++;
+        Debug.Log("Paper delivered. Total delivered: " + deliveredPapers);
+    }
+
+    void NotifyPaperCountChanged()
+    {
+        OnPaperCountChanged?.Invoke(currentPapers);
     }
 }

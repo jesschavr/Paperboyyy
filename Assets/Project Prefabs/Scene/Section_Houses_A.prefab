@@ -135,6 +135,37 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 10.000002, y: 2.2204466e-16, z: 10}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &3499306314087086376
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3339186908796168954}
+  m_Layer: 0
+  m_Name: ScoreZone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3339186908796168954
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3499306314087086376}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5143065549150489746}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3740391912790674018
 GameObject:
   m_ObjectHideFlags: 0
@@ -949,7 +980,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 5358082129893016453, guid: 15341e55fe37f41818e8dd0eced8a52c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3339186908796168954}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 15341e55fe37f41818e8dd0eced8a52c, type: 3}
 --- !u!4 &5143065549150489746 stripped
@@ -1861,6 +1895,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3496504064833997363}
     m_Modifications:
+    - target: {fileID: -920877004572615648, guid: 0a54d6eaadb5448a784c9b969e46aea8, type: 3}
+      propertyPath: pickupTrigger
+      value: 
+      objectReference: {fileID: 8670442562863135517}
     - target: {fileID: 3999675459128462691, guid: 0a54d6eaadb5448a784c9b969e46aea8, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.027
@@ -1913,6 +1951,11 @@ PrefabInstance:
 --- !u!4 &1949383699139109034 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3999675459128462691, guid: 0a54d6eaadb5448a784c9b969e46aea8, type: 3}
+  m_PrefabInstance: {fileID: 3209986293805919689}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &8670442562863135517 stripped
+BoxCollider:
+  m_CorrespondingSourceObject: {fileID: -3107571616762112300, guid: 0a54d6eaadb5448a784c9b969e46aea8, type: 3}
   m_PrefabInstance: {fileID: 3209986293805919689}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &3536543419512505537

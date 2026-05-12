@@ -6,55 +6,24 @@ public class PaperThrow : MonoBehaviour
     [SerializeField] GameObject paperPrefab;
     [SerializeField] Transform throwOrigin;
 
-    [Header("Throw Settings")]
-    [SerializeField] float throwForce = 8f;
-    [SerializeField] float minAngle = -25f;
-    [SerializeField] float maxAngle = 60f;
-
-    [Header("Horizontal Aim")]
-    [SerializeField] float minHorizontalAngle = -90f;
-    [SerializeField] float maxHorizontalAngle = 90f;
-    [SerializeField] float mouseSensitivity = 2f;
+    [Header("Targeting")]
+    [SerializeField] MailboxTargetTracker targetTracker;
+    [SerializeField] float flightTime = 0.8f;
+    [SerializeField] float maxMissRadius = 1.2f;
 
     [Header("Trajectory Line")]
     [SerializeField] LineRenderer trajectoryLine;
     [SerializeField] int trajectoryPoints = 20;
     [SerializeField] float timeBetweenPoints = 0.05f;
 
-    float currentVerticalAngle = 10f;
-    float currentHorizontalAngle = 0f;
     bool isAiming = false;
 
     void Update()
     {
-        /*
-         * MODO ANTERIOR / PRUEBA:
-         * Este bloque permite apuntar manteniendo F y lanzar al soltar F.
-         * Lo dejamos activo por si quieres probar el lanzamiento sin el medidor.
-         * No tiene nada específico de Leap Motion, así que no se pierde funcionalidad.
-         */
-
-        if (Input.GetKeyDown(KeyCode.F))
-        {
-            BeginAim();
-        }
-
         if (isAiming)
         {
-            UpdateAimWithMouse();
             ShowTrajectory();
         }
-
-        if (Input.GetKeyUp(KeyCode.F))
-        {
-            ThrowPreparedPaper(true);
-        }
-
-        /*
-         * Si más adelante se vuelve a usar Leap Motion, aquí podría conectarse
-         * el gesto de la mano para modificar currentVerticalAngle,
-         * currentHorizontalAngle o para llamar a ThrowPreparedPaper().
-         */
     }
 
     public void BeginAim()
@@ -77,23 +46,17 @@ public class PaperThrow : MonoBehaviour
         }
     }
 
-    void UpdateAimWithMouse()
-    {
-        float mouseY = Input.GetAxis("Mouse Y");
-        currentVerticalAngle += mouseY * mouseSensitivity;
-        currentVerticalAngle = Mathf.Clamp(currentVerticalAngle, minAngle, maxAngle);
-
-        float mouseX = Input.GetAxis("Mouse X");
-        currentHorizontalAngle += mouseX * mouseSensitivity;
-        currentHorizontalAngle = Mathf.Clamp(currentHorizontalAngle, minHorizontalAngle, maxHorizontalAngle);
-    }
-
     void ShowTrajectory()
     {
         if (trajectoryLine == null || throwOrigin == null)
             return;
 
-        Vector3 velocity = CalculateThrowVelocity();
+        if (!TryCalculateThrowVelocityToPoint(GetIdealTargetPoint(), out Vector3 velocity))
+        {
+            trajectoryLine.positionCount = 0;
+            return;
+        }
+
         trajectoryLine.positionCount = trajectoryPoints;
 
         Vector3 currentPosition = throwOrigin.position;
@@ -119,22 +82,52 @@ public class PaperThrow : MonoBehaviour
         }
     }
 
-    Vector3 CalculateThrowVelocity()
+    Vector3 GetIdealTargetPoint()
     {
-        float verticalRad = currentVerticalAngle * Mathf.Deg2Rad;
+        if (targetTracker == null || targetTracker.CurrentTarget == null)
+            return Vector3.zero;
 
-        Vector3 flatDirection = Quaternion.AngleAxis(currentHorizontalAngle, Vector3.up) * transform.forward;
-        flatDirection.y = 0f;
-        flatDirection.Normalize();
+        return targetTracker.CurrentTarget.position;
+    }
 
-        Vector3 direction =
-            flatDirection * Mathf.Cos(verticalRad) +
-            Vector3.up * Mathf.Sin(verticalRad);
+    Vector3 GetAdjustedTargetPoint(float accuracy)
+    {
+        Vector3 targetPoint = GetIdealTargetPoint();
 
-        return direction.normalized * throwForce;
+        float missRadius = Mathf.Lerp(maxMissRadius, 0f, Mathf.Clamp01(accuracy));
+        Vector2 offset = Random.insideUnitCircle * missRadius;
+
+        targetPoint += transform.right * offset.x;
+        targetPoint += Vector3.up * offset.y;
+
+        return targetPoint;
+    }
+
+    bool TryCalculateThrowVelocityToPoint(Vector3 targetPoint, out Vector3 velocity)
+    {
+        velocity = Vector3.zero;
+
+        if (throwOrigin == null || targetTracker == null || targetTracker.CurrentTarget == null)
+            return false;
+
+        Vector3 start = throwOrigin.position;
+        Vector3 displacement = targetPoint - start;
+
+        float time = Mathf.Max(0.1f, flightTime);
+
+        Vector3 horizontalVelocity = new Vector3(displacement.x, 0f, displacement.z) / time;
+        float verticalVelocity = (displacement.y - 0.5f * Physics.gravity.y * time * time) / time;
+
+        velocity = horizontalVelocity + Vector3.up * verticalVelocity;
+        return true;
     }
 
     public void ThrowPreparedPaper(bool consumePaper)
+    {
+        ThrowPreparedPaper(consumePaper, 1f);
+    }
+
+    public void ThrowPreparedPaper(bool consumePaper, float accuracy)
     {
         if (consumePaper)
         {
@@ -148,7 +141,14 @@ public class PaperThrow : MonoBehaviour
             PaperManager.Instance.ThrowPaper();
         }
 
-        Vector3 throwVelocity = CalculateThrowVelocity();
+        Vector3 adjustedTarget = GetAdjustedTargetPoint(accuracy);
+
+        if (!TryCalculateThrowVelocityToPoint(adjustedTarget, out Vector3 throwVelocity))
+        {
+            Debug.Log("No mailbox target found.");
+            StopAim();
+            return;
+        }
 
         GameObject paper = Instantiate(
             paperPrefab,
@@ -156,15 +156,33 @@ public class PaperThrow : MonoBehaviour
             Quaternion.LookRotation(throwVelocity)
         );
 
+PaperShotData shotData = paper.GetComponent<PaperShotData>();
+
+if (shotData == null)
+{
+    shotData = paper.AddComponent<PaperShotData>();
+}
+
+shotData.SetAccuracy(accuracy);
+
         Rigidbody rb = paper.GetComponent<Rigidbody>();
 
         if (rb != null)
         {
-            rb.AddForce(throwVelocity, ForceMode.Impulse);
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.AddForce(throwVelocity, ForceMode.VelocityChange);
         }
 
         Destroy(paper, 3f);
 
         StopAim();
     }
+    public bool CanAimAtCurrentTarget()
+{
+    return throwOrigin != null &&
+           targetTracker != null &&
+           targetTracker.CurrentTarget != null;
+}
+
 }

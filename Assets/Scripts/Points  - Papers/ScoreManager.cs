@@ -3,19 +3,21 @@ using TMPro;
 
 public class ScoreManager : MonoBehaviour
 {
-    public static ScoreManager Instance;
-
-    public int score = 0;
+    public static ScoreManager Instance { get; private set; }
 
     [SerializeField] TMP_Text scoreText;
 
+    int score = 0;
+
     void Awake()
     {
-        Instance = this;
-    }
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
 
-    void Start()
-    {
+        Instance = this;
         UpdateUI();
     }
 

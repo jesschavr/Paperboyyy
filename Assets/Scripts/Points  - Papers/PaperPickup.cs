@@ -2,43 +2,43 @@ using UnityEngine;
 
 public class PaperPickup : MonoBehaviour
 {
-    [SerializeField] float rotateSpeed = 90f; // spins so its visible
-    [SerializeField] float floatSpeed = 1.5f; // speed of up/down movement
-    [SerializeField] float floatHeight = 0.03f; // height of movement
+    [SerializeField] Transform visual;
+    [SerializeField] float rotateSpeed = 90f;
+    [SerializeField] Collider pickupTrigger;
 
-    [SerializeField] AudioClip pickupSound;
-    [SerializeField] float pickupVolume = 1f;
-
-    private Vector3 startPosition;
-
-    void Start()
-    {
-        startPosition = transform.position;
-    }
+    bool collected = false;
 
     void Update()
     {
-        // Rotate so it catches the player's eye
-        transform.Rotate(Vector3.up, rotateSpeed * Time.deltaTime);
-
-        // Very subtle floating movement
-        float newY = startPosition.y + Mathf.Sin(Time.time * floatSpeed) * floatHeight;
-        transform.position = new Vector3(transform.position.x, newY, transform.position.z);
+        if (visual != null)
+        {
+            visual.Rotate(Vector3.up, rotateSpeed * Time.deltaTime, Space.Self);
+        }
     }
 
     void OnTriggerEnter(Collider other)
     {
-        // Check if its the player that touched it
-        if (other.CompareTag("Player"))
-        {
-            PaperManager.Instance.CollectPaper();
+        if (collected)
+            return;
 
-            if (pickupSound != null)
-            {
-                AudioSource.PlayClipAtPoint(pickupSound, transform.position, pickupVolume);
-            }
+        Transform playerRoot = other.transform.root;
 
-            Destroy(gameObject); // pickup disappears
-        }
+        if (!playerRoot.CompareTag("Player"))
+            return;
+
+        if (PaperManager.Instance == null)
+            return;
+
+        bool success = PaperManager.Instance.CollectPaper();
+
+        if (!success)
+            return;
+
+        collected = true;
+
+        if (pickupTrigger != null)
+            pickupTrigger.enabled = false;
+
+        Destroy(gameObject);
     }
 }
